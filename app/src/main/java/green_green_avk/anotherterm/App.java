@@ -106,6 +106,8 @@ public final class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // Termux 风格环境：$PREFIX/$HOME/$TMPDIR、内置工具安装、Dropbear SSH 8022
+        green_green_avk.anotherterm.termtools.TermEnv.init(this);
         PasswordService.setContextProvider(ConsoleService::getInstance);
         PluginsManager.init(this);
         settings.init(this, PreferenceManager.getDefaultSharedPreferences(this));

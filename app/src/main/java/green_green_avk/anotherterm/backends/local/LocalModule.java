@@ -25,6 +25,7 @@ import green_green_avk.anotherterm.R;
 import green_green_avk.anotherterm.backends.BackendException;
 import green_green_avk.anotherterm.backends.BackendModule;
 import green_green_avk.anotherterm.backends.BackendUiInteraction;
+import green_green_avk.anotherterm.termtools.TermEnv;
 import green_green_avk.anotherterm.utils.LogMessage;
 import green_green_avk.anotherterm.utils.Misc;
 import green_green_avk.ptyprocess.PtyProcess;
@@ -297,13 +298,30 @@ public final class LocalModule extends BackendModule {
         env.put("APP_TARGET_SDK", Integer.toString(BuildConfig.TARGET_SDK_VERSION));
         env.put("MY_DEVICE_ABIS", TextUtils.join(" ", Misc.getAbis()));
         env.put("MY_ANDROID_SDK", Integer.toString(Build.VERSION.SDK_INT));
+        // Termux 风格环境注入
+        env.put("PREFIX", TermEnv.getPrefixDir().getAbsolutePath());
+        env.put("HOME", TermEnv.getHomeDir().getAbsolutePath());
+        env.put("TMPDIR", TermEnv.getTmpDir().getAbsolutePath());
+        env.put("PATH", TermEnv.buildPATH());
+        env.put("SHELL", TermEnv.detectShell());
         // Input URIs
         for (final Map.Entry<String, String> ei : envInput.entrySet()) {
             env.put("INPUT_" + ei.getKey(), ei.getValue());
         }
         // ==========
         synchronized (connectionLock) {
-            final PtyProcess p = PtyProcess.system(execute, env);
+            // 默认 shell：Termux 风格优先级 fish > bash > zsh > sh > /system/bin/sh
+            final PtyProcess p;
+            if (TextUtils.isEmpty(execute)) {
+                final String shellPath = TermEnv.detectShell();
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+                    p = PtyProcess.execl(shellPath, env);
+                } else {
+                    p = PtyProcess.execl(shellPath, env, "-l");
+                }
+            } else {
+                p = PtyProcess.system(execute, env);
+            }
             try {
                 readerThread = new ReaderThread(p);
             } catch (final IOException e) {
