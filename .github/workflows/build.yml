@@ -75,7 +75,8 @@ jobs:
       - name: 组装发布目录
         run: |
           set -eux
-          cp app/build/outputs/apk/oldgood/downgradable/release/*.apk dist/
+          find app/build/outputs -name "*.apk" -print
+          cp $(find app/build/outputs -name "*.apk" | head -1) dist/anotherterm-tools-release.apk
           ls -la dist/
 
       - name: 上传构建产物
